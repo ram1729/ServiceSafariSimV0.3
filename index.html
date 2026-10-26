@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SERVICE SAFARI 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+
+<div id="start-screen">
+<div class="start-panel">
+<div class="start-title">SERVICE SAFARI <span class="start-ver">3D · v0.3</span></div>
+<div class="start-sub">12-VENUE LIVE SERVICE SIMULATION</div>
+
+<div class="ctrl-section">
+<span class="ctrl-label">AGENTS PER VENUE</span>
+<div class="ctrl-row">
+<div class="radio-group">
+<label><input type="radio" name="agentCount" value="50"> 50</label>
+<label><input type="radio" name="agentCount" value="100" checked> 100</label>
+<label><input type="radio" name="agentCount" value="200"> 200</label>
+</div>
+</div>
+</div>
+
+<div class="ctrl-section">
+<span class="ctrl-label">GLOBAL PARAMETERS</span>
+<div class="ctrl-row"><label>CROWD LEVEL</label><input type="range" id="sl-crowd" min="1" max="10" value="5"><span class="val" id="v-crowd">5</span></div>
+<div class="ctrl-row"><label>STAFF RATIO</label><input type="range" id="sl-staff" min="1" max="10" value="5"><span class="val" id="v-staff">5</span></div>
+<div class="ctrl-row"><label>SIGNAGE QUALITY</label><input type="range" id="sl-sign" min="1" max="10" value="5"><span class="val" id="v-sign">5</span></div>
+</div>
+
+<div class="ctrl-section">
+<span class="ctrl-label">VENUE ASSIGNMENTS</span>
+<div class="btn-row" style="justify-content:flex-start;margin-top:0;margin-bottom:8px"><button class="btn-rand" onclick="App.randomiseVenues()">RANDOMISE ALL</button></div>
+<div class="venue-grid" id="venue-grid"></div>
+</div>
+
+<div class="btn-row">
+<button class="btn-run" onclick="App.start()">RUN SIMULATION</button>
+</div>
+<div class="start-note" style="text-align:center">CLICK A VENUE TO ENTER IT IN 3D · DRAG TO ORBIT · RIGHT-DRAG TO PAN · WHEEL TO ZOOM</div>
+<div id="gl-error">WEBGL IS NOT AVAILABLE IN THIS BROWSER.<br>SERVICE SAFARI 3D NEEDS A WEBGL-CAPABLE BROWSER.</div>
+</div>
+</div>
+
+<div id="loading">
+<div class="ld-title">BUILDING 3D VENUES</div>
+<div class="ld-track"><div class="ld-fill" id="ld-fill"></div></div>
+<div class="ld-msg" id="ld-msg">PREPARING...</div>
+</div>
+
+<div id="sim-screen">
+<div id="dashboard">
+<div class="dash-col dash-col-sentiment">
+<div class="dash-label">OVERALL SENTIMENT</div>
+<div class="dash-sentiment-bars">
+<div class="dsb-row"><span class="dsb-label" style="color:#e53935">FRUSTRATED</span><div class="dsb-track"><div class="dsb-fill" id="gbar-frus" style="background:#e53935;width:0"></div></div><span class="dsb-val" id="gbv-frus">0%</span></div>
+<div class="dsb-row"><span class="dsb-label" style="color:#ffd700">NEUTRAL</span><div class="dsb-track"><div class="dsb-fill" id="gbar-neut" style="background:#ffd700;width:0"></div></div><span class="dsb-val" id="gbv-neut">0%</span></div>
+<div class="dsb-row"><span class="dsb-label" style="color:#4caf50">SATISFIED</span><div class="dsb-track"><div class="dsb-fill" id="gbar-sat" style="background:#4caf50;width:0"></div></div><span class="dsb-val" id="gbv-sat">0%</span></div>
+<div class="dsb-row"><span class="dsb-label" style="color:#00e5ff">DELIGHTED</span><div class="dsb-track"><div class="dsb-fill" id="gbar-del" style="background:#00e5ff;width:0"></div></div><span class="dsb-val" id="gbv-del">0%</span></div>
+</div>
+</div>
+<div class="dash-col dash-col-status">
+<div class="dash-label">STATUS</div>
+<div id="dash-avg">AVG: 5.0</div>
+<div id="dash-best">BEST: ---</div>
+<div id="dash-worst">WORST: ---</div>
+<div id="dash-agents" style="font-size:6px;color:#aaa;margin-top:2px">1200 AGENTS ACTIVE</div>
+<div id="dash-speed-row">SPEED <select class="speed-select" data-speed></select></div>
+<button class="btn-end" onclick="App.endSimulation()">END SIM</button>
+</div>
+<div class="dash-col dash-col-quotes">
+<div class="dash-label">LIVE FEED</div>
+<div id="dash-quotes"></div>
+</div>
+<div class="dash-col dash-col-insight">
+<div class="dash-label">INSIGHTS</div>
+<div id="dash-insight-cards"></div>
+</div>
+</div>
+<div id="grid-container"><canvas id="grid-gl"></canvas></div>
+</div>
+
+<div id="detail-screen">
+<div id="detail-header">
+<span class="dh-back" onclick="App.closeDetail()">[ESC] BACK</span>
+<span class="dh-name" id="dh-name"></span>
+<span class="dh-mood" id="dh-mood"></span>
+</div>
+<div id="detail-body">
+<div id="detail-canvas-wrap">
+<div id="event-banner"></div>
+<div id="cam-bar">
+<button data-cam="iso" class="on">ISO VIEW</button>
+<button data-cam="top">TOP DOWN</button>
+<button data-cam="street">STREET LEVEL</button>
+<button data-cam="follow">FOLLOW [F]</button>
+<button data-toggle="walls">CUTAWAY [C]</button>
+<button data-toggle="labels" class="on">LABELS [L]</button>
+<button data-toggle="chatter" class="on">CHATTER [T]</button>
+</div>
+<canvas id="minimap" width="180" height="135"></canvas>
+<div id="cam-help">DRAG ORBIT · RIGHT/SHIFT-DRAG PAN · WHEEL ZOOM<br>WASD PAN · Q/E ROTATE · CLICK AGENT · SPACE PAUSE</div>
+<div id="bubbles"></div>
+<div id="agent-card">
+<div class="ac-name"></div>
+<div class="ac-type"></div>
+<div class="ac-mood"></div>
+<div class="ac-need"></div>
+<div class="ac-dialogue"></div>
+<div class="ac-follow">[F] FOLLOW IN 3D</div>
+</div>
+</div>
+<div id="detail-right">
+<div class="dr-section">
+<div class="dr-title">MOOD BREAKDOWN</div>
+<div class="dr-bars" id="dr-bars">
+<div class="dr-bar-row"><span class="dr-bar-label" style="color:#e53935">FRUSTRATED</span><div class="dr-bar-track"><div class="dr-bar-fill" id="bar-frus" style="background:#e53935;width:0"></div></div><span class="dr-bar-val" id="bv-frus">0%</span></div>
+<div class="dr-bar-row"><span class="dr-bar-label" style="color:#ffd700">NEUTRAL</span><div class="dr-bar-track"><div class="dr-bar-fill" id="bar-neut" style="background:#ffd700;width:0"></div></div><span class="dr-bar-val" id="bv-neut">0%</span></div>
+<div class="dr-bar-row"><span class="dr-bar-label" style="color:#4caf50">SATISFIED</span><div class="dr-bar-track"><div class="dr-bar-fill" id="bar-sat" style="background:#4caf50;width:0"></div></div><span class="dr-bar-val" id="bv-sat">0%</span></div>
+<div class="dr-bar-row"><span class="dr-bar-label" style="color:#00e5ff">DELIGHTED</span><div class="dr-bar-track"><div class="dr-bar-fill" id="bar-del" style="background:#00e5ff;width:0"></div></div><span class="dr-bar-val" id="bv-del">0%</span></div>
+</div>
+</div>
+<div class="dr-section" style="flex:1;display:flex;flex-direction:column;min-height:0">
+<div class="dr-title">DIALOGUE FEED</div>
+<div id="detail-dialogue"></div>
+</div>
+<div class="dr-section">
+<div class="dr-title">INSIGHTS</div>
+<div id="detail-insights-log"></div>
+</div>
+</div>
+</div>
+<div id="detail-bottom">
+<div class="db-sliders">
+<label>CROWD</label><input type="range" min="1" max="10" value="5" id="ds-crowd"><span class="db-val" id="dv-crowd">5</span>
+<label>STAFF</label><input type="range" min="1" max="10" value="5" id="ds-staff"><span class="db-val" id="dv-staff">5</span>
+<label>SIGN</label><input type="range" min="1" max="10" value="5" id="ds-sign"><span class="db-val" id="dv-sign">5</span>
+<label>SPEED</label><select class="speed-select" data-speed></select>
+</div>
+<div class="db-events">
+<button onclick="App.triggerEvent('queueSpike')">QUEUE SPIKE</button>
+<button onclick="App.triggerEvent('rudeStaff')">RUDE STAFF</button>
+<button onclick="App.triggerEvent('surpriseDelight')">SURPRISE DELIGHT</button>
+<button onclick="App.triggerEvent('systemOutage')">SYSTEM OUTAGE</button>
+<button onclick="App.triggerEvent('emergencyDrill')">EMERGENCY DRILL</button>
+</div>
+</div>
+</div>
+
+<div id="report-screen">
+<div class="report-wrap">
+<div class="report-header">
+<div class="report-title">SERVICE SAFARI — SIMULATION REPORT</div>
+<div class="report-sub">FINAL ANALYSIS · 3D v0.3</div>
+<div class="report-stats" id="report-stats"></div>
+</div>
+<div class="report-section"><div class="report-section-title">EXECUTIVE SUMMARY</div><div class="report-section-body" id="report-exec"></div></div>
+<div class="report-section"><div class="report-section-title">VENUE RANKINGS</div><div class="report-section-body" id="report-rankings"></div></div>
+<div class="report-section"><div class="report-section-title">KEY INSIGHTS</div><div class="report-section-body" id="report-insights"></div></div>
+<div class="report-section"><div class="report-section-title">PER-VENUE BREAKDOWN</div><div class="report-section-body" id="report-venues"></div></div>
+<div class="report-section"><div class="report-section-title">RECOMMENDATIONS</div><div class="report-section-body" id="report-recs"></div></div>
+<button class="btn-new-sim" onclick="location.reload()">NEW SIMULATION</button>
+</div>
+</div>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "service-safari-3d",
+  "version": "0.3.0",
+  "description": "Service Safari v0.3 — 12-venue live service simulation in 3D",
+  "type": "module",
+  "scripts": {
+    "start": "http-server -c-1 -p 8080 .",
+    "test": "node tests/sim.test.mjs"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+}
